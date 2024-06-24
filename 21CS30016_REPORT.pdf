@@ -1,0 +1,121 @@
+21CS30016=> SELECT roll,name FROM student WHERE eid=(SELECT EID FROM event WHERE ENAME='megaevent');
+  roll  |     name      
+--------+---------------
+ CSE002 | Priya Patel
+ ECE002 | Sneha Gupta
+ EE002  | Sachin Mishra
+
+21CS30016=> SELECT roll, name FROM student WHERE eid = (SELECT EID FROM event WHERE ENAME = 'megaevent') AND rid = (SELECT RID FROM role WHERE Rname = 'secretary');
+  roll  |     name      
+--------+---------------
+ CSE002 | Priya Patel
+ EE002  | Sachin Mishra
+(2 rows)
+
+21CS30016=> SELECT name FROM participant WHERE college_name='IITB' AND event_id=(SELECT eid FROM event WHERE ENAME='megaevent');
+ name 
+------
+(0 rows)
+
+21CS30016=> SELECT college_name FROM participant WHERE event_id = (SELECT EID FROM event WHERE ENAME = 'megaevent') GROUP BY college_name HAVING COUNT(*) > 0;
+ college_name 
+--------------
+ IITKGP
+
+21CS30016=> SELECT ename  FROM event WHERE eid IN (  SELECT s.eid    FROM student s  JOIN role r ON s.rid = r.rid    WHERE rname = 'secretary' )GROUP BY ename;
+    ename    
+-------------
+ intro event
+ megaevent
+(2 rows)
+
+
+SELECT name FROM student s JOIN volunteer r ON s.roll=r.roll;
+     name      
+---------------
+ Amit Kumar
+ Priya Patel
+ Rahul Sharma
+ Sneha Gupta
+ Ananya Singh
+ Sachin Mishra
+ Rajesh Kumar
+ Deepika Singh
+(8 rows)
+
+
+21CS30016=> SELECT e.ename FROM event e  JOIN student s ON e.eid = s.eid  JOIN volunteer r ON s.roll = r.roll WHERE s.dept = 'CSE';
+    ename    
+-------------
+ intro event
+ megaevent
+ workshop
+(3 rows)
+
+
+SELECT college_name
+FROM (
+    SELECT college_name, COUNT(*) AS participant_count
+    FROM participant
+    WHERE event_id = (SELECT EID FROM event WHERE ENAME = 'megaevent')
+    GROUP BY college_name
+) AS college_participant_count
+WHERE participant_count = (
+    SELECT MAX(participant_count)
+    FROM (
+        SELECT COUNT(*) AS participant_count
+        FROM participant
+        WHERE event_id = (SELECT EID FROM event WHERE ENAME = 'megaevent')
+        GROUP BY college_name
+    ) AS max_counts
+)
+ORDER BY college_name;
+ college_name 
+--------------
+ IITKGP
+
+21CS30016=>SELECT college_name
+FROM (
+    SELECT college_name, COUNT(*) AS participant_count
+    FROM participant
+    GROUP BY college_name
+) AS college_participant_count
+WHERE participant_count = (
+    SELECT MAX(participant_count)
+    FROM (
+        SELECT COUNT(*) AS participant_count
+        FROM participant
+        GROUP BY college_name
+    ) AS max_counts
+)
+ORDER BY college_name;
+
+ college_name 
+--------------
+ IITB
+ IITM
+(2 rows)
+
+21CS30016=>WITH dept_volunteer_counts AS (
+    SELECT s.dept, COUNT(*) AS volunteer_count,
+           RANK() OVER (ORDER BY COUNT(*) DESC) AS rank
+    FROM student s
+    JOIN volunteer v ON s.roll = v.roll
+    WHERE EXISTS (
+        SELECT 1
+        FROM participant p
+        WHERE p.college_name = 'IITB' AND p.event_id = s.eid
+    )
+    GROUP BY s.dept
+)
+SELECT dept
+FROM dept_volunteer_counts
+WHERE rank = 1;
+
+ dept 
+------
+ CSE
+ ECE
+ EE
+(3 rows)
+
